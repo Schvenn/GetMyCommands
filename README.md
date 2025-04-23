@@ -1,0 +1,1 @@
+getmycommands & getmoduledetails are two functions to pull information from the modules directories, recursively, in order to find relevant details about all user generated content and display them in useful tables for reference.
