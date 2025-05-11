@@ -1,4 +1,4 @@
-@{ModuleVersion = '1.1'
+@{ModuleVersion = '1.5'
 RootModule = 'GetMyCommands.psm1'
 PrivateData = @{fpad = 42
 fnpad = 20
