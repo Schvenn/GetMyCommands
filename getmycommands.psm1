@@ -1,5 +1,17 @@
-# Get a list of functions with aliases and details.
+function getmycommands {# Get a list of functions with aliases and details.
 $profileDir = Split-Path -Parent $profile; $aliases = @{}; $results = @()
+
+function loadconfiguration{
+$script:baseModulePath = if ($PSVersionTable.PSEdition -eq 'Core') {"$env:USERPROFILE\Documents\Powershell\Modules\GetMyCommands"} else {"$env:USERPROFILE\Documents\WindowsPowerShell\Modules\GetMyCommands"}
+$script:configPath = Join-Path $baseModulePath "GetMyCommands.psd1"; if (!(Test-Path $configPath)) {throw "Config file not found at $configPath"}
+$script:config = Import-PowerShellDataFile -Path $configPath
+
+# Pull config values into variables
+$script:fpad = $config.privatedata.fpad
+$script:fnpad = $config.privatedata.fnpad
+$script:apad = $config.privatedata.apad
+$script:ppad = $config.privatedata.ppad}
+loadconfiguration
 
 # Get a list of aliases.
 Get-Alias | ForEach-Object {$aliases[$_.Name] = $_.Definition}
@@ -32,16 +44,20 @@ $alias = if ($aliasList.Count -gt 1) {"$($aliasList.Count) aliases"} elseif ($al
 $results += [PSCustomObject]@{File = $relativePath; Function = $fname; Alias = $alias; Parameters = $paramString; Details = $detailComment}}}
 
 # Sort and output
-$results = $results | Where-Object {-not [string]::IsNullOrWhiteSpace($_.Details) -and $_.Details -notmatch "(Internal)"} | Sort-Object File, Function; Write-Host ""; Write-Host ("File".PadRight(38) + "Function".PadRight(28) + "Alias".PadRight(12) + "Parameters".PadRight(20) + "Details") -ForegroundColor White; Write-Host ("-" * 150) -ForegroundColor Cyan
+$results = $results | Where-Object {-not [string]::IsNullOrWhiteSpace($_.Details) -and $_.Details -notmatch "(Internal)"} | Sort-Object File, Function; Write-Host ""; Write-Host ("File".PadRight($fpad) + "Function".PadRight($fnpad) + "Alias".PadRight($apad) + "Parameters".PadRight($ppad) + "Details") -ForegroundColor White; Write-Host ("-" * 150) -ForegroundColor Cyan
 
 foreach ($item in $results) {$file = if ($item.File) {$item.File} else {""}
 $function = if ($item.Function) {$item.Function} else {""}; $alias = if ($item.Alias) {$item.Alias} else {""}; $parameters = if ($item.Parameters) {if (($item.Parameters -split ',').Count -gt 2 -and $item.Parameters -notmatch '\d+ parameters') {"$(($item.Parameters -split ',').Count) parameters"} else {$item.Parameters}} else {""}; $details = if ($item.Details) {$item.Details} else {""}
 
-Write-Host ($file.PadRight(38)) -NoNewline; Write-Host ($function.PadRight(28)) -NoNewline -ForegroundColor Yellow
-if ($alias -match '^\d+ aliases$') {Write-Host ($alias.PadRight(12)) -NoNewline -ForegroundColor DarkGreen} else {Write-Host ($alias.PadRight(12)) -NoNewline -ForegroundColor Green}
-if ($parameters -match '\d+ parameters') {Write-Host ($parameters.PadRight(20)) -NoNewline -ForegroundColor Cyan} else {Write-Host ($parameters.PadRight(20)) -NoNewline -ForegroundColor DarkCyan}
+Write-Host ($file.PadRight($fpad)) -NoNewline; Write-Host ($function.PadRight($fnpad)) -NoNewline -ForegroundColor Yellow
+if ($alias -match '^\d+ aliases$') {Write-Host ($alias.PadRight($apad)) -NoNewline -ForegroundColor DarkGreen} else {Write-Host ($alias.PadRight($apad)) -NoNewline -ForegroundColor Green}
+if ($parameters -match '\d+ parameters') {Write-Host ($parameters.PadRight($ppad)) -NoNewline -ForegroundColor Cyan} else {Write-Host ($parameters.PadRight($ppad)) -NoNewline -ForegroundColor DarkCyan}
 if ($details -like "(Internal)*") {Write-Host $details -ForegroundColor DarkGray} else {Write-Host $details -ForegroundColor White}}
 
 # Totals
 $totalFunctions = $results.Count; $totalAliases = ($results | ForEach-Object {if ($_.Alias -match '^(\d+) aliases$') {[int]$matches[1]} elseif ($_.Alias) {($_.Alias -split ', ').Count} else {0}}) | Measure-Object -Sum | Select-Object -ExpandProperty Sum
-Write-Host ("-" * 150) -f Cyan; Write-Host -f White $("Totals".PadRight(38) + "$totalFunctions".PadRight(28) + "$totalAliases".PadRight(12)); Write-Host ("-" * 150) -f Cyan; ""
+Write-Host ("-" * 150) -f Cyan; Write-Host -f White $("Totals".PadRight(42) + "$totalFunctions".PadRight(20) + "$totalAliases"); Write-Host ("-" * 150) -f Cyan; ""}
+sal -name gmc -value getmycommands
+
+Export-ModuleMember -Function getmycommands
+Export-ModuleMember -Alias gmc
