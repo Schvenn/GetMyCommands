@@ -79,7 +79,7 @@ Write-Host -f cyan ("-" * 100); Write-Host -f white ("Total Aliases:".PadRight(3
 sal -name gma -value getmyaliases
 
 function quicklist {# Get an abbreviated list of all custom modules.
-$modulelist=Get-ChildItem "$env:UserProfile\Documents\PowerShell\Modules" -Directory; $modules=$modulelist.Name; $pad=($modules|Measure-Object -Maximum Length).Maximum+2; ""; Write-Host ("Module:".PadRight($pad)+"Functions:") -ForegroundColor Yellow; foreach ($module in $modules) {$cmds=(Get-Command -Module $module -ErrorAction SilentlyContinue).Name; if ($cmds) {Write-Host -ForegroundColor Cyan ($module+":").PadRight($pad) -NoNewLine; Write-Host ($cmds -join ", ")}}; ""}
+$modulelist=Get-ChildItem "$home\Documents\PowerShell\Modules" -Directory; $modules=$modulelist.Name; $pad=($modules|Measure-Object -Maximum Length).Maximum+2; ""; Write-Host ("Module:".PadRight($pad)+"Functions:") -ForegroundColor Yellow; foreach ($module in $modules) {$cmds = (Get-Command -ErrorAction SilentlyContinue | Where-Object { $_.Source -eq $module }).Name; if ($cmds) {Write-Host -ForegroundColor Cyan ($module+":").PadRight($pad) -NoNewLine; Write-Host ($cmds -join ", ")}}; ""}
 
 Export-ModuleMember -Function getmycommands, getmoduledetails, getmyaliases, quicklist
 Export-ModuleMember -Alias gmc, gmd, gma
