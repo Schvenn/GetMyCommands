@@ -1,7 +1,6 @@
 $script:powershell = Split-Path $profile
-function font {param($newcolour); [console]::foregroundcolor = "$newcolour"}
 
-function getmycommands {# Get a list of functions with aliases and details.
+function getmycommands ($mode) {# Get a list of functions with aliases and details.
 $profileDir = Split-Path -Parent $profile; $aliases = @{}; $results = @()
 
 function loadconfiguration {$script:baseModulePath = "$powershell\Modules\GetMyCommands"; $script:configPath = Join-Path $baseModulePath "GetMyCommands.psd1"
@@ -14,6 +13,24 @@ $script:fnpad = $config.privatedata.fnpad
 $script:apad = $config.privatedata.apad
 $script:ppad = $config.privatedata.ppad}
 loadconfiguration
+
+if ($mode -match "(?i)^details$") {# Module file details with function/alias counts.
+""; Write-Host -f white ("Folder".PadRight(20) + "File Name".PadRight(30) + "Functions".PadLeft(10) + "Aliases".PadLeft(10) + "File Size".PadLeft(10) + "Last Modified".PadLeft(20)); Write-Host -f cyan ("-" * 100); $tf=0; $ta=0; Get-ChildItem -Path "$powerShell\Modules" -Recurse -File | ForEach-Object {$ext = $_.Extension; $name = $_.Name; $folder = $_.Directory.Name.PadRight(20); $fileName = $name.PadRight(30); $fileSize = ('{0:N0}' -f $_.Length).PadLeft(10); $lastModified = $_.LastWriteTime.ToString("yyyy-MM-dd HH:mm").PadLeft(20); $fcount = 0; $acount = 0
+if ($ext -match '\.psm1$|\.ps1$') {$lines = Get-Content $_.FullName -Raw -EA SilentlyContinue; $fcount = ($lines -split "`n" | Where-Object {$_ -match '(?i)^function'}).Count; $acount = ($lines -split "`n" | Where-Object {$_ -match '(?i)sal\s+-name'}).Count; $tf += $fcount; $ta += $acount}; $fout = if ($fcount -gt 0) {"$fcount".PadLeft(10)} else {"".PadLeft(10)}; $aout = if ($acount -gt 0) {"$acount".PadLeft(10)} else {"".PadLeft(10)}; $color = switch ($ext) {'.psm1' {'White'}; '.ps1' {'Gray'}; '.psd1' {'White'}; default {'DarkGray'}}; [console]::foregroundcolor = "$color"; Write-Host "$folder$fileName$fout$aout$fileSize$lastModified"}; Write-Host -f cyan ("-" * 100); Write-Host -f white ("Totals".PadRight(50) + "$tf".PadLeft(10) + "$ta".PadLeft(10)); Write-Host -f cyan ("-" * 100); ""; return}
+
+if ($mode -match "(?i)^aliases$") {# Get a list of aliases mapped to my functions.
+$profileDir = Split-Path -Parent $profile; $aliases = @{}; $results = @()  # Initialize the results array
+Get-Alias | ForEach-Object {$aliases[$_.Name] = $_.Definition}
+Get-ChildItem -Path $profileDir -Recurse -Include *.ps1, *.psm1 -File | ForEach-Object {$content = Get-Content $_.FullName -Raw
+if (-not $content) {return}
+$ast = [System.Management.Automation.Language.Parser]::ParseInput($content, [ref]$null, [ref]$null); $ast.FindAll({$args[0] -is [System.Management.Automation.Language.FunctionDefinitionAst]}, $true) | ForEach-Object {$funcName = $_.Name
+$aliasList = $aliases.Keys | Where-Object {$aliases[$_] -eq $funcName}
+if ($aliasList.Count -gt 0) {$aliasNames = $aliasList -join ", "; $results += [PSCustomObject]@{Function = $funcName; Aliases = $aliasNames}}}}
+if ($results.Count -gt 0) {Write-Host -f white "`nFunction".PadRight(30)"Alias"; Write-Host -f cyan ("-" * 100); $totalAliases = 0; $results | Sort-Object Function | ForEach-Object {Write-Host -f yellow ($_.Function.PadRight(30)) -NoNewline; Write-Host -f green ($_.Aliases); $totalAliases += ($_.Aliases -split ',').Count}
+Write-Host -f cyan ("-" * 100); Write-Host -f white ("Total Aliases:".PadRight(30) + "$totalAliases"); Write-Host -f cyan ("-" * 100); Write-Host -f darkgreen "Note: This list also contains functions that are (Internal) or contain no comment line."}; ""; return}
+
+if ($mode -match "(?i)^quick$") {# Get an abbreviated list of all custom modules.
+$modulelist=Get-ChildItem "$powerShell\Modules" -Directory; $modules=$modulelist.Name; $pad=($modules|Measure-Object -Maximum Length).Maximum+2; ""; Write-Host -f white ("Module:".PadRight($pad)+"Functions:"); Write-Host -f cyan ("-" * 100); foreach ($module in $modules) {$cmds = (Get-Command -ErrorAction SilentlyContinue | Where-Object { $_.Source -eq $module }).Name; if ($cmds) {Write-Host -f cyan ($module+":").PadRight($pad) -NoNewLine; Write-Host -f yellow ($cmds -join ", ")}}; Write-Host -f cyan ("-" * 100); ""; return}
 
 # Get a list of aliases.
 Get-Alias | ForEach-Object {$aliases[$_.Name] = $_.Definition}
@@ -61,25 +78,17 @@ $totalFunctions = $results.Count; $totalAliases = ($results | ForEach-Object {if
 Write-Host ("-" * 150) -f Cyan; Write-Host -f White $("Totals".PadRight($fpad) + "$totalFunctions".PadRight($fnpad) + "$totalAliases"); Write-Host ("-" * 150) -f Cyan; ""}
 sal -name gmc -value getmycommands
 
-function getmoduledetails {# Module file details with function/alias counts.
-""; font yellow; Write-Host ("Folder".PadRight(15) + "File Name".PadRight(30) + "Functions".PadLeft(10) + "Aliases".PadLeft(10) + "File Size".PadLeft(10) + "Last Modified".PadLeft(20)); Write-Host ("-"*96); $tf=0; $ta=0; Get-ChildItem -Path "$powerShell\Modules" -Recurse -File | ForEach-Object {$ext = $_.Extension; $name = $_.Name; $folder = $_.Directory.Name.PadRight(15); $fileName = $name.PadRight(30); $fileSize = ('{0:N0}' -f $_.Length).PadLeft(10); $lastModified = $_.LastWriteTime.ToString("yyyy-MM-dd HH:mm").PadLeft(20); $fcount = 0; $acount = 0
-if ($ext -match '\.psm1$|\.ps1$') {$lines = Get-Content $_.FullName -Raw -EA SilentlyContinue; $fcount = ($lines -split "`n" | Where-Object {$_ -match '(?i)^function'}).Count; $acount = ($lines -split "`n" | Where-Object {$_ -match '(?i)sal\s+-name'}).Count; $tf += $fcount; $ta += $acount}; $fout = if ($fcount -gt 0) {"$fcount".PadLeft(10)} else {"".PadLeft(10)}; $aout = if ($acount -gt 0) {"$acount".PadLeft(10)} else {"".PadLeft(10)}; $color = switch ($ext) {'.psm1' {'White'}; '.ps1' {'Gray'}; '.psd1' {'White'}; default {'DarkGray'}}; font $color; Write-Host "$folder$fileName$fout$aout$fileSize$lastModified"}; font yellow; Write-Host ("-"*96); Write-Host ("Totals".PadRight(45) + "$tf".PadLeft(10) + "$ta".PadLeft(10)); font gray; ""}
-sal -name gmd -value getmoduledetails
+Export-ModuleMember -Function getmycommands
+Export-ModuleMember -Alias gmc
 
-function getmyaliases {# Get a list of aliases mapped to my functions.
-$profileDir = Split-Path -Parent $profile; $aliases = @{}; $results = @()  # Initialize the results array
-Get-Alias | ForEach-Object {$aliases[$_.Name] = $_.Definition}
-Get-ChildItem -Path $profileDir -Recurse -Include *.ps1, *.psm1 -File | ForEach-Object {$content = Get-Content $_.FullName -Raw
-if (-not $content) {return}
-$ast = [System.Management.Automation.Language.Parser]::ParseInput($content, [ref]$null, [ref]$null); $ast.FindAll({$args[0] -is [System.Management.Automation.Language.FunctionDefinitionAst]}, $true) | ForEach-Object {$funcName = $_.Name
-$aliasList = $aliases.Keys | Where-Object {$aliases[$_] -eq $funcName}
-if ($aliasList.Count -gt 0) {$aliasNames = $aliasList -join ", "; $results += [PSCustomObject]@{Function = $funcName; Aliases = $aliasNames}}}}
-if ($results.Count -gt 0) {Write-Host -f white "`nFunction".PadRight(30)"Alias"; Write-Host -f cyan ("-" * 100); $totalAliases = 0; $results | Sort-Object Function | ForEach-Object {Write-Host -f yellow ($_.Function.PadRight(30)) -NoNewline; Write-Host -f green ($_.Aliases); $totalAliases += ($_.Aliases -split ',').Count}
-Write-Host -f cyan ("-" * 100); Write-Host -f white ("Total Aliases:".PadRight(30) + "$totalAliases"); Write-Host -f darkgreen "Note: This list also contains functions that are (Internal) or contain no comment line."}; ""}
-sal -name gma -value getmyaliases
+<#
+## GetMyCommands
 
-function quicklist {# Get an abbreviated list of all custom modules.
-$modulelist=Get-ChildItem "$powerShell\Modules" -Directory; $modules=$modulelist.Name; $pad=($modules|Measure-Object -Maximum Length).Maximum+2; ""; Write-Host ("Module:".PadRight($pad)+"Functions:") -ForegroundColor Yellow; foreach ($module in $modules) {$cmds = (Get-Command -ErrorAction SilentlyContinue | Where-Object { $_.Source -eq $module }).Name; if ($cmds) {Write-Host -ForegroundColor Cyan ($module+":").PadRight($pad) -NoNewLine; Write-Host ($cmds -join ", ")}}; ""}
+This module provides detailed tables of all functions and aliases loaded under the current user profile:
 
-Export-ModuleMember -Function getmycommands, getmoduledetails, getmyaliases, quicklist
-Export-ModuleMember -Alias gmc, gmd, gma
+	• The default table provides a table of files, functions, aliases, parameters and a brief explanation of the function, taken from the first comment line.
+	
+	• -details provides an alternate table that presents all folders, files and resources, as well as their last modified date and totals.
+	• -assets provides a list of all aliases, including those which may not hidden from the main table.
+	• -quick provides a comma separated list of functions as they relate to their parent module.
+##>
