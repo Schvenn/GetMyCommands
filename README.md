@@ -1,2 +1,7 @@
-GetMyAliases, GetMyCommands, GetModuleDetails and QuickList are functions used to pull information from the modules directories recursively, in order to find relevant details about all user generated content and display them in various table formats for reference.
-These are not interactive commands, although I've made the configuration for GetMyCommands configurable via an external PSD1 file.
+This module provides detailed tables of all functions and aliases loaded under the current user profile:
+
+The default table provides a table of files, functions, aliases, parameters and a brief explanation of the function, taken from the first comment line.
+	
+	• -details provides an alternate table that presents all folders, files and resources, as well as their last modified date and totals.
+	• -assets provides a list of all aliases, including those which may not hidden from the main table.
+	• -quick provides a comma separated list of functions as they relate to their parent module.
