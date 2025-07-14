@@ -9,7 +9,7 @@ PowerShellVersion = '5.1'
 FunctionsToExport = @('GetMyCommands')
 CmdletsToExport = @()
 VariablesToExport = @()
-AliasesToExport = @()
+AliasesToExport = @('gmc')
 FileList = @('GetMyCommands.psm1')
 
 PrivateData = @{PSData = @{Tags = @('function', 'module', 'alias', 'powershell')
